@@ -12,13 +12,11 @@ if len(sys.argv) != 2:
     sys.exit(1)
 
 tdmsFileName = sys.argv[1]
-rootFileName = "data/%s.root" %(tdmsFileName.split('.')[0])
+rootFileName = "data/%s.root" %((tdmsFileName.rsplit('/',1)[1]).split('.')[0])
 print ("convert", tdmsFileName, "to", rootFileName)
 
 (objects,rawdata) = pytdms.read(tdmsFileName)
 
-with open(r'test.yaml', 'w') as file:
-    documents = yaml.dump(objects, file)
 
 # Read headers
 Name              = objects[b'/'][3][b'name'][1].decode('utf-8')
@@ -42,14 +40,14 @@ for variable in ["Name", "Events", "Operator", "StartT", "EndT", "VerticalRange"
                  "TriggerSlope", "TriggerLevel", "TriggerDelay", "ReferencePosition"]:
     a_dict[variable] = eval(variable)
 
-with open(r'yaml/%s.yaml' %(tdmsFileName.split('.')[0]), 'w') as file:
+with open(r'yaml/%s.yaml' %((tdmsFileName.rsplit('/',1)[1]).split('.')[0]), 'w') as file:
     documents = yaml.dump(a_dict, file, default_flow_style=False, sort_keys=False)
 
-slicedarray0 = array( 'f', [ 0 ] * 150 )
-slicedarray1 = array( 'f', [ 0 ] * 150 )
+slicedarray0 = array( 'f', [ 0 ] * RecordLength )
+slicedarray1 = array( 'f', [ 0 ] * RecordLength )
 t = ROOT.TTree("detector_A", "detector_A")
-t.Branch('ch0',slicedarray0,"slicedarray0[150]/F")
-t.Branch('ch1',slicedarray1,"slicedarray1[150]/F")
+t.Branch('ch0',slicedarray0,"slicedarray0[%d]/F" %(RecordLength))
+t.Branch('ch1',slicedarray1,"slicedarray1[%d]/F" %(RecordLength))
 
 for index in range (Events):
     start_index = index * RecordLength
