@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import numpy as np
 import pytdms
 import ROOT
 from ROOT import TTree
@@ -15,8 +14,8 @@ tdmsFileName = sys.argv[1]
 rootFileName = "data/%s.root" %((tdmsFileName.rsplit('/',1)[1]).split('.')[0])
 print ("convert", tdmsFileName, "to", rootFileName)
 
+# Read tdmsfile
 (objects,rawdata) = pytdms.read(tdmsFileName)
-
 
 # Read headers
 Name              = objects[b'/'][3][b'name'][1].decode('utf-8')
@@ -40,24 +39,29 @@ for variable in ["Name", "Events", "Operator", "StartT", "EndT", "VerticalRange"
                  "TriggerSlope", "TriggerLevel", "TriggerDelay", "ReferencePosition"]:
     a_dict[variable] = eval(variable)
 
+# Write headers into yaml file
 with open(r'yaml/%s.yaml' %((tdmsFileName.rsplit('/',1)[1]).split('.')[0]), 'w') as file:
     documents = yaml.dump(a_dict, file, default_flow_style=False, sort_keys=False)
 
+# Initialize output tree
 slicedarray0 = array( 'f', [ 0 ] * RecordLength )
 slicedarray1 = array( 'f', [ 0 ] * RecordLength )
 t = ROOT.TTree("detector_A", "detector_A")
 t.Branch('ch0',slicedarray0,"slicedarray0[%d]/F" %(RecordLength))
 t.Branch('ch1',slicedarray1,"slicedarray1[%d]/F" %(RecordLength))
 
+# Loop
 for index in range (Events):
+    if ( index % 10000 == 0 ):
+        print ("Processing event", index )
     start_index = index * RecordLength
     end_index = (index + 1) * RecordLength
-    # slicedarray0 = array( 'f', rawdata[b"/'ADC Readout Channels'/'ch0'"][start_index:end_index])
     for idx, val in enumerate(range(start_index, end_index)):
         slicedarray0[idx] = rawdata[b"/'ADC Readout Channels'/'ch0'"][val]
         slicedarray1[idx] = rawdata[b"/'ADC Readout Channels'/'ch1'"][val]
     t.Fill()
 
+# Output
 outHistFile = ROOT.TFile.Open(rootFileName,"RECREATE")
 outHistFile.cd()
 t.Write()
